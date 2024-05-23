@@ -194,7 +194,6 @@ class ScaledDotProductAttention(nn.Module):
         return self.bmm2(attn_weight, value)
 
 
-
 def update(prev, cur, dim, idx, inp_seq_len):
     orig_cur = cur
     cur = cur.to(dtype=prev.dtype)
@@ -260,7 +259,7 @@ class GaudiFalconAttention(FalconAttention):
     def __init__(self, config: FalconConfig):
         super().__init__(config)
 
-        '''
+        """
         Choice of SDPA:
         There are these variables: use_flash_attention and datatype (bf16/fp8)
         datatype is determined by presence of QUANT_CONFIG env var, presence of which indicates fp8
@@ -268,7 +267,7 @@ class GaudiFalconAttention(FalconAttention):
         2. use_flash_attention, bf16: use FusedSDPA
         3. not use_flash_attention, fp8: Use ScaledDotProductAttention, along with QUANT_CONFIG. This is the case before this PR
         4. not use_flash_attention, bf16: F.scaled_dot_product_attention. Slowest option
-        '''
+        """
         self.is_fp8 = os.getenv("QUANT_CONFIG", "") != ""
 
         # In the constructor we do not know which one we will need later in the forward, so creating both
@@ -402,7 +401,7 @@ class GaudiFalconAttention(FalconAttention):
                 if use_flash_attention:
                     is_causal = self.is_causal and query_length > 1 and flash_attention_causal_mask
                     if self.is_fp8:
-                        #is_causal = query_length > 1 and flash_attention_causal_mask
+                        # is_causal = query_length > 1 and flash_attention_causal_mask
                         attn_mask = None if is_causal else attention_mask
                         flash_attention_fast_softmax = True  # TODO pass this along
                         softmax_mode = "fast" if flash_attention_fast_softmax else "None"
@@ -413,7 +412,9 @@ class GaudiFalconAttention(FalconAttention):
                             )
                     else:
                         # TODO very similar to the fp8 case above, could be merged.
-                        with sdp_kernel(enable_recompute=flash_attention_recompute) if SDPContext else contextlib.nullcontext():
+                        with sdp_kernel(
+                            enable_recompute=flash_attention_recompute
+                        ) if SDPContext else contextlib.nullcontext():
                             attn_output = FusedSDPA.apply(
                                 query_layer,
                                 key_layer,
